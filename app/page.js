@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import PlayLounge from '../components/PlayLounge';
 import LiveCallHub from '../components/LiveCallHub';
 import WalletHub from '../components/WalletHub';
 import InboxHub from '../components/InboxHub';
@@ -109,7 +110,8 @@ export default function ZenithLiveApp() {
   });
                       <p className="text-xs text-slate-300 bg-[#06060c] p-3 rounded-xl border border-amber-500/10">{myProfile.bio}</p>
                       <div className="flex gap-2">
-                        {!isVip && <button onClick={() => setShowPaywall(true)} className="flex-1 zenith-gold py-2.5 rounded-xl text-xs font-extrabold">Upgrade to VIP</button>}
+                        {!isVip && <button onClick={() => setShowPaywall(true)} className="flex-1 zenith-gold py-2.5 rounded-xl text-xs font-extrabold">Upgrade VIP</button>}
+                        {!myProfile.is_verified && <button onClick={async () => { await supabase.from('profiles').update({ is_verified: true }).eq('id', currentUser.id); fetchProfile(currentUser.id); alert('18+ Verified Badge Activated!'); }} className="px-3 py-2.5 rounded-xl zenith-royal text-xs font-extrabold">Verify 18+</button>}
                         <button onClick={() => supabase.auth.signOut()} className="px-4 py-2.5 rounded-xl bg-slate-800 text-xs font-bold flex items-center gap-1"><LogOut className="w-3.5 h-3.5" /> Logout</button>
                       </div>
                     </>
