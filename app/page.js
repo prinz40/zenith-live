@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import WalletHub from '../components/WalletHub';
 import InboxHub from '../components/InboxHub';
 import SocialHub from '../components/SocialHub';
 import { supabase } from '../lib/supabase';
