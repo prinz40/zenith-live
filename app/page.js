@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import LiveCallHub from '../components/LiveCallHub';
 import WalletHub from '../components/WalletHub';
 import InboxHub from '../components/InboxHub';
 import SocialHub from '../components/SocialHub';
@@ -24,6 +25,7 @@ export default function ZenithLiveApp() {
   const [countryFilter, setCountryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const [activeCallUser, setActiveCallUser] = useState(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
