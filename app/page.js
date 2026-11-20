@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
+import SocialHub from '../components/SocialHub';
 import { supabase } from '../lib/supabase';
 import {
-  Flame, Globe, Gamepad2, Video, MessageCircle, Crown, Lock,
+  Flame, Globe, Compass, Gamepad2, Video, MessageCircle, Crown, Lock,
   Coins, Gift, Search, ShieldCheck, Sparkles, X, User, LogOut, CheckCircle2
 } from 'lucide-react';
 
@@ -159,7 +160,7 @@ export default function ZenithLiveApp() {
             )}
 
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#06060c]/95 border-t border-amber-500/20 px-2 py-2 flex justify-around z-30">
-              {[{ id: 'discover', label: 'Discover', icon: Globe }, { id: 'play', label: 'Play', icon: Gamepad2 }, { id: 'live', label: 'Live 18+', icon: Flame }, { id: 'profile', label: 'Profile', icon: User }].map((t) => {
+              {[{ id: 'discover', label: 'Discover', icon: Globe }, { id: 'feed', label: 'Feed', icon: Compass }, { id: 'play', label: 'Play', icon: Gamepad2 }, { id: 'live', label: 'Live 18+', icon: Flame }, { id: 'profile', label: 'Profile', icon: User }].map((t) => {
                 const Icon = t.icon;
                 return (
                   <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl ${activeTab === t.id ? 'text-amber-400' : 'text-slate-400'}`}>
