@@ -6,6 +6,7 @@ import { Video, PhoneCall, Radio, Gift, X, Mic, MicOff, VideoOff, PhoneIncoming 
 const ICE_SERVERS = { iceServers: [{ urls: 'stun:://google.com' }] };
 
 
+
 export default function LiveCallHub({ currentUser, myProfile, activeCallUser, setActiveCallUser, refreshProfile, requireVip }) {
   const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
@@ -208,7 +209,7 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
 
   return (
     <div className="space-y-4">
-      {incomingCall && (
+            {incomingCall && (
         <div className="zenith-royal p-3.5 rounded-2xl flex items-center justify-between animate-pulse">
           <div className="flex items-center gap-2">
             <PhoneIncoming className="w-5 h-5 text-amber-300" />
@@ -216,12 +217,13 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
               <p className="font-extrabold text-xs">Incoming Call: {incomingCall.callerName}</p>
               <p className="text-[10px] text-purple-200">Tap Answer to connect live</p>
             </div>
-                    <button onClick={() => { setActiveCallUser({ id: incomingCall.callerId, full_name: incomingCall.callerName, country: 'Live Caller' }); setIncomingCall(null); }} className="zenith-gold px-3.5 py-1.5 rounded-xl text-xs font-extrabold">
+          </div>
+          <button onClick={() => { setActiveCallUser({ id: incomingCall.callerId, full_name: incomingCall.callerName, country: 'Live Caller' }); setIncomingCall(null); }} className="zenith-gold px-3.5 py-1.5 rounded-xl text-xs font-extrabold">
             Answer
           </button>
         </div>
       )}
-
+        
       <form onSubmit={handleGoLive} className="zenith-card rounded-2xl p-3.5 space-y-2.5">
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-extrabold text-amber-400 flex items-center gap-1"><Radio className="w-4 h-4 text-rose-500" /> Start a Live Stream</h3>
