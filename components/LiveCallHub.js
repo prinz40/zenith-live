@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Video, PhoneCall, Radio, Gift, X, Mic, MicOff, VideoOff, PhoneIncoming } from 'lucide-react';
 
-const ICE_SERVERS = { iceServers: [{ urls: 'stun:://google.com' }, { urls: 'stun:://google.com' }] };
+const ICE_SERVERS = { iceServers: [{ urls: 'stun:://google.com' }] };
+
 
 export default function LiveCallHub({ currentUser, myProfile, activeCallUser, setActiveCallUser, refreshProfile, requireVip }) {
   const [rooms, setRooms] = useState([]);
@@ -215,5 +216,46 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
               <p className="font-extrabold text-xs">Incoming Call: {incomingCall.callerName}</p>
               <p className="text-[10px] text-purple-200">Tap Answer to connect live</p>
             </div>
+                    <button onClick={() => { setActiveCallUser({ id: incomingCall.callerId, full_name: incomingCall.callerName, country: 'Live Caller' }); setIncomingCall(null); }} className="zenith-gold px-3.5 py-1.5 rounded-xl text-xs font-extrabold">
+            Answer
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleGoLive} className="zenith-card rounded-2xl p-3.5 space-y-2.5">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xs font-extrabold text-amber-400 flex items-center gap-1"><Radio className="w-4 h-4 text-rose-500" /> Start a Live Stream</h3>
+          <button type="button" onClick={() => setVoiceOnly(!voiceOnly)} className="text-[10px] bg-slate-800 px-2.5 py-1 rounded-lg text-amber-300 font-bold flex items-center gap-1">
+            <PhoneCall className="w-3 h-3" /> {voiceOnly ? 'Mode: Voice Only' : 'Mode: HD Video'}
+          </button>
+        </div>
+        <input required placeholder="Stream Title (e.g., Late Night Vibe & Truth/Dare)" value={roomTitle} onChange={(e) => setRoomTitle(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-xs" />
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-1.5 text-xs text-rose-400 font-bold">
+            <input type="checkbox" checked={isNaughty} onChange={(e) => setIsNaughty(e.target.checked)} /> 18+ After-Dark Naughty Room
+          </label>
+          <button type="button" onClick={() => requireVip(() => handleGoLive({ preventDefault: () => {} }))} className="zenith-gold px-4 py-2 rounded-xl text-xs font-extrabold">Go Live Now</button>
+        </div>
+      </form>
+
+      <div className="space-y-2.5">
+        <h3 className="text-xs font-bold text-slate-400">Active Global Live Streams</h3>
+        {rooms.length === 0 && <p className="text-center text-xs text-slate-500 py-6">No live streams right now—tap Go Live Now above!</p>}
+        {rooms.map((r) => (
+          <div key={r.id} className="zenith-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${r.is_naughty_18 ? 'bg-rose-600/30 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                {r.is_naughty_18 ? '🔥 18+ NAUGHTY' : '● LIVE STREAM'}
+              </span>
+              <h4 className="font-bold text-sm mt-1">{r.title}</h4>
+              <p className="text-[11px] text-slate-400">Host: {r.host_name}</p>
+            </div>
+            <button onClick={() => requireVip(() => setActiveRoom(r))} className="zenith-royal px-3.5 py-2 rounded-xl text-xs font-extrabold">Watch</button>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+                                                                                     }
+                
         
