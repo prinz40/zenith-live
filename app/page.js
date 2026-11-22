@@ -63,31 +63,45 @@ export default function ZenithLiveApp() {
     if (data) setUsers(data);
   };
 
-  const handleAuth = async (e) => {
+    const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) { setLoading(false); return alert(error.message); }
-      if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          full_name: fullName || 'Zenith Member',
-          age: parseInt(age) || 21,
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isSignUp ? 'signup' : 'login',
+          email,
+          password,
+          fullName,
+          age,
           country,
-          bio: bio || 'Ready to connect, play & go live on Zenith!',
-          coins: 50
-        });
-        await fetchProfile(data.user.id);
+          bio,
+        }),
+      });
+      const out = await res.json();
+      if (!out.ok) {
+        setLoading(false);
+        return alert(out.error || 'Authentication failed.');
+      }
+      if (out.session) {
+        await supabase.auth.setSession(out.session);
+      }
+      if (out.user) {
+        setCurrentUser(out.user);
+        await fetchProfile(out.user.id);
         await fetchUsers();
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { setLoading(false); return alert(error.message); }
+      setLoading(false);
+      setShowAuth(false);
+      alert(isSignUp ? 'Welcome to Zenith Live! +50 Coins credited.' : 'Welcome back to Zenith Live!');
+    } catch (err) {
+      setLoading(false);
+      alert('Network error: ' + err.message);
     }
-    setLoading(false);
-    setShowAuth(false);
   };
+  
 
   const isVip = myProfile?.is_vip || false;
 
