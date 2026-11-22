@@ -250,20 +250,20 @@ export default function ZenithLiveApp() {
             <h2 className="font-black text-lg text-amber-400">{isSignUp ? 'Join Zenith Live' : 'Welcome Back'}</h2>
             {isSignUp && (
               <>
+                                <input required placeholder="Full Name or Stage Name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm" />
                 <div className="flex gap-2">
-  <div className="w-28">
-    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Age (18+)</label>
-    <input required type="number" min="18" max="99" placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm" />
-  </div>
-  <div className="flex-1">
-    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Country</label>
-    <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm">
-      {COUNTRIES.slice(1).map((c) => <option key={c} value={c}>{c}</option>)}
-    </select>
-  </div>
-</div>
-                              
+                  <div className="w-28">
+                    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Age (18+)</label>
+                    <input required type="number" min="18" max="99" placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Country</label>
+                    <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm">
+                      {COUNTRIES.slice(1).map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
                 </div>
+                                                                                             
                 <input placeholder="Short Bio (Dating, Games, Live...)" value={bio} onChange={(e) => setBio(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm" />
               </>
             )}
