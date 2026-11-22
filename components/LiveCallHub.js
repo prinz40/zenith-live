@@ -1,55 +1,142 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Video, PhoneCall, Radio, Flame, Gift, X, Mic, MicOff, VideoOff, Users } from 'lucide-react';
+import { Video, PhoneCall, Radio, Gift, X, Mic, MicOff, VideoOff, PhoneIncoming } from 'lucide-react';
+
+const ICE_SERVERS = { iceServers: [{ urls: 'stun:://google.com' }, { urls: 'stun:://google.com' }] };
 
 export default function LiveCallHub({ currentUser, myProfile, activeCallUser, setActiveCallUser, refreshProfile, requireVip }) {
   const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
   const [roomTitle, setRoomTitle] = useState('');
   const [isNaughty, setIsNaughty] = useState(false);
+  const [voiceOnly, setVoiceOnly] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const [connStatus, setConnStatus] = useState('Connecting...');
+  const [incomingCall, setIncomingCall] = useState(null);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const pcRef = useRef(null);
+
+  const activeRoomId = activeCallUser && currentUser
+    ? [currentUser.id, activeCallUser.id].sort().join('_')
+    : activeRoom?.id || null;
 
   useEffect(() => {
     fetchRooms();
-    const ch = supabase
+    const roomCh = supabase
       .channel('zenith-live-rooms')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_rooms' }, () => fetchRooms())
       .subscribe();
-    return () => { supabase.removeChannel(ch); stopLocalMedia(); };
-  }, []);
+
+    const ringCh = currentUser ? supabase
+      .channel('zenith-incoming-rings')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_signals' }, (payload) => {
+        const sig = payload.new;
+        if (sig.signal_type === 'ring' && sig.signal_data?.calleeId === currentUser.id) {
+          setIncomingCall(sig.signal_data);
+        }
+      })
+      .subscribe() : null;
+
+    return () => {
+      supabase.removeChannel(roomCh);
+      if (ringCh) supabase.removeChannel(ringCh);
+      cleanupCall();
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
-    if (activeRoom || activeCallUser) startLocalMedia();
-    else stopLocalMedia();
-  }, [activeRoom, activeCallUser]);
+    if (!activeRoomId || !currentUser) return;
+    startWebRTC(activeRoomId);
+    return () => cleanupCall();
+  }, [activeRoomId]);
 
   const fetchRooms = async () => {
     const { data } = await supabase.from('live_rooms').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(20);
     if (data) setRooms(data);
   };
 
-  const startLocalMedia = async () => {
+  const cleanupCall = () => {
+    pcRef.current?.close();
+    pcRef.current = null;
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    localStreamRef.current = null;
+  };
+
+  const startWebRTC = async (roomId) => {
+    setConnStatus('Requesting Camera/Mic...');
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = s;
-      if (videoRef.current) videoRef.current.srcObject = s;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: !voiceOnly, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      pcRef.current = pc;
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      pc.ontrack = (event) => {
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
+        setConnStatus('Connected Live');
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          await supabase.from('call_signals').insert({
+            room_id: roomId,
+            sender_id: currentUser.id,
+            signal_type: 'ice',
+            signal_data: event.candidate.toJSON()
+          });
+        }
+      };
+
+      const sigChannel = supabase
+        .channel(`webrtc_${roomId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_signals', filter: `room_id=eq.${roomId}` }, async (payload) => {
+          const sig = payload.new;
+          if (sig.sender_id === currentUser.id || !pcRef.current) return;
+          if (sig.signal_type === 'offer') {
+            await pcRef.current.setRemoteDescription(new RTCSessionDescription(sig.signal_data));
+            const answer = await pcRef.current.createAnswer();
+            await pcRef.current.setLocalDescription(answer);
+            await supabase.from('call_signals').insert({ room_id: roomId, sender_id: currentUser.id, signal_type: 'answer', signal_data: answer });
+            setConnStatus('Connected Live');
+          } else if (sig.signal_type === 'answer') {
+            await pcRef.current.setRemoteDescription(new RTCSessionDescription(sig.signal_data));
+            setConnStatus('Connected Live');
+          } else if (sig.signal_type === 'ice') {
+            await pcRef.current.addIceCandidate(new RTCIceCandidate(sig.signal_data)).catch(() => {});
+          }
+        })
+        .subscribe();
+
+      // Initiate call offer & ring partner if 1-on-1 caller
+      if (activeCallUser && currentUser.id < activeCallUser.id) {
+        await supabase.from('call_signals').insert({
+          room_id: roomId,
+          sender_id: currentUser.id,
+          signal_type: 'ring',
+          signal_data: { callerId: currentUser.id, callerName: myProfile?.full_name || 'Zenith VIP', calleeId: activeCallUser.id }
+        });
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await supabase.from('call_signals').insert({ room_id: roomId, sender_id: currentUser.id, signal_type: 'offer', signal_data: offer });
+        setConnStatus('Ringing Partner...');
+      } else {
+        setConnStatus('Live Room Ready');
+      }
     } catch {
-      console.log('Camera/mic preview unavailable');
+      setConnStatus('Camera/Mic Permission Needed');
     }
   };
 
-  const stopLocalMedia = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  };
   const handleGoLive = async (e) => {
     e.preventDefault();
-    if (!currentUser || !myProfile) return alert('Sign in first!');
-    if (!roomTitle.trim()) return;
+    if (!currentUser || !myProfile || !roomTitle.trim()) return;
     const { data } = await supabase.from('live_rooms').insert({
       host_id: currentUser.id,
       host_name: myProfile.full_name,
@@ -66,7 +153,7 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
     const { data: ok } = await supabase.rpc('send_zenith_gift', {
       p_sender_id: currentUser.id,
       p_receiver_id: hostId,
-      p_gift_name: 'Live Stream Rose 🌹',
+      p_gift_name: 'Live Rose 🌹',
       p_cost: 10
     });
     await refreshProfile();
@@ -77,21 +164,23 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
     if (activeRoom && activeRoom.host_id === currentUser?.id) {
       await supabase.from('live_rooms').update({ is_active: false }).eq('id', activeRoom.id);
     }
+    cleanupCall();
     setActiveRoom(null);
     setActiveCallUser(null);
   };
 
   if (activeRoom || activeCallUser) {
-    const title = activeCallUser ? `Private HD Call with ${activeCallUser.full_name}` : activeRoom.title;
+    const title = activeCallUser ? `HD Call: ${activeCallUser.full_name}` : activeRoom.title;
     return (
       <div className="zenith-card rounded-3xl overflow-hidden border border-amber-500/40 relative">
-        <div className="relative h-80 bg-black flex items-center justify-center">
-          <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+        <div className="relative h-80 bg-black">
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          <video ref={localVideoRef} autoPlay muted playsInline className="w-24 h-32 object-cover rounded-2xl border-2 border-amber-400 absolute bottom-16 right-3 bg-slate-900" />
           <div className="absolute top-3 left-3 right-3 flex justify-between items-center">
-            <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse">● LIVE HD</span>
+            <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse">● {connStatus}</span>
             <button onClick={endSession} className="bg-black/70 p-2 rounded-full text-white"><X className="w-4 h-4" /></button>
           </div>
-          <div className="absolute bottom-3 left-3 right-3 bg-black/70 backdrop-blur p-3 rounded-2xl flex items-center justify-between">
+          <div className="absolute bottom-3 left-3 right-3 bg-black/75 p-2.5 rounded-2xl flex items-center justify-between">
             <div>
               <p className="font-bold text-xs text-amber-400">{title}</p>
               <p className="text-[10px] text-slate-300">{activeCallUser ? activeCallUser.country : `Host: ${activeRoom.host_name}`}</p>
@@ -103,14 +192,14 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
             )}
           </div>
         </div>
-        <div className="p-3 bg-[#06060c] flex justify-center gap-4">
-          <button onClick={() => { setMicOn(!micOn); streamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !micOn)); }} className="p-3 rounded-full bg-slate-800">
+        <div className="p-3 bg-[#06060c] flex justify-center gap-3">
+          <button onClick={() => { setMicOn(!micOn); localStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !micOn)); }} className="p-3 rounded-full bg-slate-800">
             {micOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-rose-400" />}
           </button>
-          <button onClick={() => { setCamOn(!camOn); streamRef.current?.getVideoTracks().forEach((t) => (t.enabled = !camOn)); }} className="p-3 rounded-full bg-slate-800">
+          <button onClick={() => { setCamOn(!camOn); localStreamRef.current?.getVideoTracks().forEach((t) => (t.enabled = !camOn)); }} className="p-3 rounded-full bg-slate-800">
             {camOn ? <Video className="w-4 h-4 text-emerald-400" /> : <VideoOff className="w-4 h-4 text-rose-400" />}
           </button>
-          <button onClick={endSession} className="px-5 py-2.5 rounded-full bg-rose-600 text-xs font-extrabold">End Call / Stream</button>
+          <button onClick={endSession} className="px-5 py-2.5 rounded-full bg-rose-600 text-xs font-extrabold">End Call</button>
         </div>
       </div>
     );
@@ -118,33 +207,13 @@ export default function LiveCallHub({ currentUser, myProfile, activeCallUser, se
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleGoLive} className="zenith-card rounded-2xl p-3.5 space-y-2.5">
-        <h3 className="text-xs font-extrabold text-amber-400 flex items-center gap-1"><Radio className="w-4 h-4 text-rose-500" /> Start a Live Stream</h3>
-        <input required placeholder="Stream Title (e.g., Late Night Vibe & Truth/Dare)" value={roomTitle} onChange={(e) => setRoomTitle(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-xs" />
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-1.5 text-xs text-rose-400 font-bold">
-            <input type="checkbox" checked={isNaughty} onChange={(e) => setIsNaughty(e.target.checked)} /> 18+ After-Dark Naughty Room
-          </label>
-          <button type="button" onClick={() => requireVip(() => handleGoLive({ preventDefault: () => {} }))} className="zenith-gold px-4 py-2 rounded-xl text-xs font-extrabold">Go Live Now</button>
-        </div>
-      </form>
-
-      <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-slate-400">Active Global Live Streams</h3>
-        {rooms.length === 0 && <p className="text-center text-xs text-slate-500 py-6">No live streams right now—tap Go Live Now above!</p>}
-        {rooms.map((r) => (
-          <div key={r.id} className="zenith-card p-3.5 rounded-2xl flex items-center justify-between">
+      {incomingCall && (
+        <div className="zenith-royal p-3.5 rounded-2xl flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-2">
+            <PhoneIncoming className="w-5 h-5 text-amber-300" />
             <div>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${r.is_naughty_18 ? 'bg-rose-600/30 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                {r.is_naughty_18 ? '🔥 18+ NAUGHTY' : '● LIVE STREAM'}
-              </span>
-              <h4 className="font-bold text-sm mt-1">{r.title}</h4>
-              <p className="text-[11px] text-slate-400">Host: {r.host_name}</p>
+              <p className="font-extrabold text-xs">Incoming Call: {incomingCall.callerName}</p>
+              <p className="text-[10px] text-purple-200">Tap Answer to connect live</p>
             </div>
-            <button onClick={() => requireVip(() => setActiveRoom(r))} className="zenith-royal px-3.5 py-2 rounded-xl text-xs font-extrabold">Watch</button>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+        
