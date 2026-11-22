@@ -11,7 +11,8 @@ import {
   Crown, Lock, Coins, Search, ShieldCheck, Sparkles, X, User, LogOut
 } from 'lucide-react';
 
-const COUNTRIES = ['All Countries', 'Nigeria', 'USA', 'UK', 'Brazil', 'Germany', 'Canada', 'South Africa', 'UAE'];
+const COUNTRIES = ['All Countries', 'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'USA', 'UK', 'Canada', 'Brazil', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'UAE', 'India', 'Philippines', 'Japan', 'Australia', 'Mexico', 'Colombia'];
+
 
 export default function ZenithLiveApp() {
   const [activeTab, setActiveTab] = useState('discover');
@@ -249,12 +250,19 @@ export default function ZenithLiveApp() {
             <h2 className="font-black text-lg text-amber-400">{isSignUp ? 'Join Zenith Live' : 'Welcome Back'}</h2>
             {isSignUp && (
               <>
-                <input required placeholder="Full Name or Stage Name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm" />
                 <div className="flex gap-2">
-                  <input required type="number" min="18" max="99" placeholder="Age (18+)" value={age} onChange={(e) => setAge(e.target.value)} className="w-24 bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm" />
-                  <select value={country} onChange={(e) => setCountry(e.target.value)} className="flex-1 bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
-                    {COUNTRIES.slice(1).map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+  <div className="w-28">
+    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Age (18+)</label>
+    <input required type="number" min="18" max="99" placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm" />
+  </div>
+  <div className="flex-1">
+    <label className="text-[10px] text-amber-400 font-bold block mb-1">Your Country</label>
+    <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2 text-sm">
+      {COUNTRIES.slice(1).map((c) => <option key={c} value={c}>{c}</option>)}
+    </select>
+  </div>
+</div>
+                              
                 </div>
                 <input placeholder="Short Bio (Dating, Games, Live...)" value={bio} onChange={(e) => setBio(e.target.value)} className="w-full bg-[#06060c] border border-slate-700 rounded-xl px-3 py-2.5 text-sm" />
               </>
