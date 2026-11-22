@@ -6,6 +6,8 @@ import InboxHub from '../components/InboxHub';
 import WalletHub from '../components/WalletHub';
 import LiveCallHub from '../components/LiveCallHub';
 import PlayLounge from '../components/PlayLounge';
+import AdminHub, { FOUNDER_EMAIL } from '../components/AdminHub';
+
 import {
   Flame, Globe, Compass, Gamepad2, Video, MessageCircle,
   Crown, Lock, Coins, Search, ShieldCheck, Sparkles, X, User, LogOut
@@ -207,7 +209,8 @@ export default function ZenithLiveApp() {
         {activeTab === 'live' && <LiveCallHub currentUser={currentUser} myProfile={myProfile} activeCallUser={activeCallUser} setActiveCallUser={setActiveCallUser} refreshProfile={() => currentUser && fetchProfile(currentUser.id)} requireVip={requireVip} />}
           {activeTab === 'inbox' && <InboxHub currentUser={currentUser} myProfile={myProfile} users={users} selectedChatUser={selectedChatUser} setSelectedChatUser={setSelectedChatUser} requireVip={requireVip} />}
         {activeTab === 'wallet' && <WalletHub currentUser={currentUser} myProfile={myProfile} users={users} refreshProfile={() => currentUser && fetchProfile(currentUser.id)} />}
-
+{activeTab === 'admin' && <AdminHub currentUser={currentUser} users={users} refreshUsers={fetchUsers} />}
+            
         {activeTab === 'profile' && (
           <div className="zenith-card rounded-3xl p-5 space-y-4">
             {currentUser && myProfile ? (
@@ -228,6 +231,10 @@ export default function ZenithLiveApp() {
                 <div className="flex flex-wrap gap-2">
                   {!isVip && <button onClick={() => setShowPaywall(true)} className="flex-1 zenith-gold py-2.5 rounded-xl text-xs font-extrabold">Upgrade VIP</button>}
                   {!myProfile.is_verified && <button onClick={verifyAge18} className="px-3.5 py-2.5 rounded-xl zenith-royal text-xs font-extrabold">Verify 18+</button>}
+                    {currentUser?.email === FOUNDER_EMAIL && (
+  <button onClick={() => setActiveTab('admin')} className="px-3.5 py-2.5 rounded-xl bg-rose-600 text-xs font-extrabold">Admin Panel</button>
+)}
+                   
                   <button onClick={() => supabase.auth.signOut()} className="px-3.5 py-2.5 rounded-xl bg-slate-800 text-xs font-bold flex items-center gap-1"><LogOut className="w-3.5 h-3.5" /> Logout</button>
                 </div>
               </>
