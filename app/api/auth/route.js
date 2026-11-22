@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = ['https://', 'aknvlgtwdweqeuzrcbaky', '.supabase.co'].join('');
+const supabaseUrl = 'https://supabase.co';
 const supabaseKey = 'sb_publishable_tPNk6pueT2uirRnxouZjfw_k_iXco2w';
 
 export async function POST(req) {
@@ -13,7 +13,10 @@ export async function POST(req) {
       return NextResponse.json({ ok: false, error: 'Email and password are required.' }, { status: 400 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false },
+      global: { fetch: (url, opts) => fetch(url, { ...opts, cache: 'no-store' }) },
+    });
 
     if (action === 'signup') {
       const { data, error } = await supabase.auth.signUp({
@@ -55,6 +58,7 @@ export async function POST(req) {
       return NextResponse.json({ ok: true, session: data.session, user: data.user });
     }
   } catch (err) {
-    return NextResponse.json({ ok: false, error: err.message || 'Server error' }, { status: 500 });
+    const detail = err?.cause?.code || err?.cause?.message || err?.message || 'Server error';
+    return NextResponse.json({ ok: false, error: `Connection error (${detail})` }, { status: 500 });
   }
 }
