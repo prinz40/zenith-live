@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { ShieldAlert, Users, Coins, Crown, CheckCircle, XCircle, Ban } from 'lucide-react';
 
-export const FOUNDER_EMAIL = adelowokellyt@gmail.com';
+export const FOUNDER_EMAIL = 'adelowokellyt@gmail.com';
+
 
 export default function AdminHub({ currentUser, users, refreshUsers }) {
   const [allTxs, setAllTxs] = useState([]);
