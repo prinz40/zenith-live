@@ -1,0 +1,18 @@
+{
+  "name": "Zenith Live — Global Connect & Play",
+  "short_name": "Zenith Live",
+  "description": "Real-life global dating, live voice/video calls, interactive games & VIP rooms.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060c",
+  "theme_color": "#06060c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
