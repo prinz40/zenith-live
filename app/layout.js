@@ -1,4 +1,5 @@
 import './globals.css';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'ZENITH LIVE — Global Connect, Dating & Live Play',
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-[#06060c] text-white antialiased">{children}</body>
+      <body className="bg-[#06060c] text-white antialiased">
+        <Script src="https://paystack.co" strategy="lazyOnload" />
+        {children}
+      </body>
     </html>
   );
 }
