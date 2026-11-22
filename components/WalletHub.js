@@ -21,7 +21,7 @@ export default function WalletHub({ currentUser, myProfile, users, refreshProfil
   const [recipientId, setRecipientId] = useState('');
   const [payoutAccount, setPayoutAccount] = useState('');
   const [cryptoTxHash, setCryptoTxHash] = useState('');
-  const [selectedCryptoPack, setSelectedCryptoPack] = useState(COIN_PACKS);
+  const [selectedCryptoPack, setSelectedCryptoPack] = useState(COIN_PACKS[0]);
   const [busy, setBusy] = useState(false);
 
   const PAYSTACK_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_replace_in_vercel';
@@ -212,3 +212,15 @@ export default function WalletHub({ currentUser, myProfile, users, refreshProfil
           <button disabled={busy} type="submit" className="zenith-gold px-3.5 rounded-xl text-xs font-extrabold">Withdraw</button>
         </div>
       </form>
+      <div className="space-y-1.5">
+        <h3 className="text-xs font-bold text-slate-400">Recent Ledger</h3>
+        {txs.map((t) => (
+          <div key={t.id} className="bg-[#10101e] px-3 py-2 rounded-xl flex justify-between text-xs border border-slate-800/80">
+            <span className="text-slate-300 truncate max-w-[70%]">{t.note}</span>
+            <span className={t.amount_coins >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{t.amount_coins >= 0 ? `+${t.amount_coins}` : t.amount_coins}c</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+                     }
