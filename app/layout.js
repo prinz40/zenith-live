@@ -1,4 +1,4 @@
-import './globals.css';
+ import './globals.css';
 import Script from 'next/script';
 
 export const metadata = {
@@ -10,7 +10,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-[#06060c] text-white antialiased">
-        <Script src="https://paystack.co" strategy="lazyOnload" />
+                <Script src="https://paystack.co" strategy="lazyOnload" />
+    
         {children}
       </body>
     </html>
